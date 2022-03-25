@@ -6,18 +6,6 @@ import (
 	"net/http"
 )
 
-type Keys struct {
-	PublicKey string `json:"public_key"`
-}
-
-type ChangePrice struct {
-	Price uint64 `json:"price"`
-}
-
-type AddDuration struct {
-	Duration uint16 `json:"duration"`
-}
-
 func getConfig(gin *MyContext) {
 	cfg := gin.CoreContext.GetConfig()
 	gin.JSON(http.StatusOK, Success(cfg))
@@ -72,4 +60,16 @@ func setBootState(gin *MyContext) {
 
 func getBootState(gin *MyContext) {
 	gin.JSON(http.StatusOK, Success(gin.CoreContext.StateService.Running()))
+}
+
+func getP2pBW(gin *MyContext) {
+	nd := gin.CoreContext.StateService.Node
+	if !nd.IsOnline {
+		gin.JSON(http.StatusBadRequest, BadRequest("Not Online"))
+		return
+	}
+
+	stats := nd.Reporter.GetBandwidthTotals()
+
+	gin.JSON(http.StatusOK, Success(stats))
 }

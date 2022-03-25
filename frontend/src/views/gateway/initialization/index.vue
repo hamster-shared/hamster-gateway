@@ -59,7 +59,7 @@ import {computed, defineComponent, reactive, onMounted, h, ref, toRefs} from 'vu
   import { getConfigApi,setConfigApi } from '/@/api/gateway/initialization';
   import { chainSchemas } from './data';
   import { useUserStore } from '/@/store/modules/user';
-  import {ProviderConfig} from "/@/api/gateway/model/settingModel";
+  import {GatewayConfig} from "/@/api/gateway/model/settingModel";
   import AButton from "/@/components/Button/src/BasicButton.vue";
 
   export default defineComponent({
@@ -118,7 +118,7 @@ import {computed, defineComponent, reactive, onMounted, h, ref, toRefs} from 'vu
           Promise.all([chainValidateFields()])
             .then((data) => {
               let chainValues = data[0];
-              let config: ProviderConfig = {
+              let config: GatewayConfig = {
                 chainApi: chainValues.address,
                 seedOrPhrase: chainValues.account,
                 publicIp: chainValues.publicIp,

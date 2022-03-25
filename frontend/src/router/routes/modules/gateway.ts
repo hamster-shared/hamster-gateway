@@ -16,7 +16,7 @@ const dashboard: AppRouteModule = {
   children: [
     {
       path: 'initialization',
-      name: 'ProviderInitialization',
+      name: 'GatewayInitialization',
       component: () => import('/@/views/gateway/initialization/index.vue'),
       meta: {
         // affix: true,
@@ -31,15 +31,6 @@ const dashboard: AppRouteModule = {
       meta: {
         icon: 'bi:play-circle',
         title: t('routes.gateway.boot'),
-      },
-    },
-    {
-      path: 'personal',
-      name: 'PersonalCenter',
-      component: () => import('/@/views/gateway/personal-center/index.vue'),
-      meta: {
-        icon: 'ant-design:user-outlined',
-        title: t('routes.gateway.personalCenter'),
       },
     },
   ],

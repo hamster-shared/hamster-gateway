@@ -9,7 +9,7 @@
 </div>
 
 
-[github](https://github.com/hamster-shared/hamster-provider): https://github.com/hamster-shared/hamster-provider
+[github](https://github.com/hamster-shared/hamster-gateway): https://github.com/hamster-shared/hamster-gateway
 
 hamster is a blockchain-based blockchain infrastructure service. Any computing device can easily access the Hamster network.
 
@@ -19,7 +19,7 @@ hamster is a blockchain-based blockchain infrastructure service. Any computing d
 
 ### 1.1 Project Introduction
 
-> Hamster-Provider is a blockchain compute node based on [go-libp2p](https://github.com/libp2p/go-libp2p.git) and [libvirt-go](https://github.com/libvirt/libvirt-go), which provide trusted infrastructure services. It can provide users' idle resources to the Hamster Market in the form of virtual machines.
+> Hamster-Gateway is a bootstrap node based on [go-libp2p](https://github.com/libp2p/go-libp2p.git) , which provides a public network-based node discovery service
 
 ### 1.2 Contributing Guide
 
@@ -64,17 +64,9 @@ We are excited that you are interested in contributing to Hamster. Before submit
 
 # install package dependency
 
-## ubuntu
-sudo apt install qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager
-sudo systemctl is-active libvirtd
-
-## centos
-yum install -y qemu-kvm libvirt virt-install
-systemctl start libvirtd && systemctl enable libvirtd
-
 
 # clone the project
-git clone https://github.com/hamster-shared/hamster-provider.git
+git clone https://github.com/hamster-shared/hamster-gateway.git
 
 # open frontend directory
 cd frontend
@@ -94,8 +86,6 @@ go mod tidy
 # Compile 
 go build
 
-# Run init config
-./hamster-gateway init (windows The run command is hamster-gateway.exe)
 
 # Run Daemon 
 ./hamster-gateway daemon (windows The run command is hamster-gateway.exe)
@@ -114,7 +104,7 @@ go build
 
 ### 4.1 Architecture Diagram
 
-![Architecture diagram](./doc/hamster-provider-Architecture-Diagram.png)
+![Architecture diagram](./doc/hamster-gateway-Architecture-Diagram.png)
 
 
 ### 4.3 Project Layout
@@ -128,11 +118,9 @@ go build
     │      ├─chain       (chain transaction sdk)
     │      ├─config      (config)
     │      ├─event       (chain event impl) 
-    │      ├─listener    (chain listener)
     │      ├─p2p         (p2p util)
-    │      ├─pk          (keypair manager)
-    │      ├─utils       (utils)
-    │      └─vm          (Virtualization impl with docker、libvirt、hyper-v)
+    │      ├─time        (state service )
+    │      └─utils       tools
     ├─doc                (doc directory)
     ├─frontend        
     │  ├─build           
@@ -156,7 +144,7 @@ go build
     │  │  └─views        (pages)
     │  ├─tests
     │  └─types
-    └─test               (provider integration test)
+    └─test               (test utils)
             
 
 ```
@@ -164,8 +152,7 @@ go build
 ## 5. Features
 
 - Configuration management: Provider parameters can be managed through configuration files and pages
-- Blockchain communication: monitor blockchain events, accept orders on the chain, and establish a heartbeat
-- Virtualized resource management: Create virtualized resources according to order requirements and complete corresponding order agreements
+- Blockchain communication: Register and establish a heartbeat
 - p2p link management: coordinate the hamster client to establish peer-to-peer communication, so that the control side can access the created virtual machine
 
 ## 6. Knowledge base
@@ -180,8 +167,8 @@ go build
 
 Thank you for considering your contribution to hamster!
 
-<a href="https://github.com/hamster-shared/hamster-provider/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=hamster-shared/hamster-provider" />
+<a href="https://github.com/hamster-shared/hamster-gateway/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hamster-shared/hamster-gateway" />
 </a>
 
 ## 8. Commercial considerations

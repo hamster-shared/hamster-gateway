@@ -88,7 +88,7 @@ func NewContext(accountId, chainAddress string) context2.CoreContext {
 		return context2.CoreContext{}
 	}
 	timeService := utils.NewTimerService()
-	stateService := time.NewStateService(reportClient)
+	stateService := time.NewStateService(reportClient, cm)
 
 	context := context2.CoreContext{
 		Cm:           cm,

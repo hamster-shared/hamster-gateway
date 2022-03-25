@@ -20,6 +20,10 @@ func StartApi(ctx *context.CoreContext) error {
 			config.POST("/boot", setBootState)
 			config.GET("/boot", getBootState)
 		}
+		p2p := v1.Group("/p2p")
+		{
+			p2p.GET("/bw", getP2pBW)
+		}
 	}
 	//r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
