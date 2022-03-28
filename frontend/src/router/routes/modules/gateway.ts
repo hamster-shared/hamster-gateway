@@ -33,6 +33,15 @@ const dashboard: AppRouteModule = {
         title: t('routes.gateway.boot'),
       },
     },
+    {
+      path: 'bw',
+      name: 'Bandwidth',
+      component: ()=> import('/@/views/gateway/bw/index.vue'),
+      meta: {
+        icon: 'bi:play-circle',
+        title: t('routes.gateway.bw'),
+      }
+    }
   ],
 };
 
