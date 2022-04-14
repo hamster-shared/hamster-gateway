@@ -2,7 +2,7 @@ import { defHttp } from '/@/utils/http/axios';
 import {GatewayConfig,} from '/@/api/gateway/model/settingModel';
 
 enum Api {
-  Setting = '/api/v1/config/settting',
+  Setting = '/v1/config/settting',
 }
 
 //获取系统配置

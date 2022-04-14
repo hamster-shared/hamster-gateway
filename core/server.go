@@ -19,8 +19,6 @@ func NewServer(ctx context2.CoreContext) *Server {
 func (s *Server) Run() {
 
 	// 1: start api
-	s.ctx.StateService.Start()
-
 	err := corehttp.StartApi(&s.ctx)
 	if err != nil {
 		os.Exit(1)
