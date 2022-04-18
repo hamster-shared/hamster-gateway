@@ -14,6 +14,8 @@ FROM node:17 as builder-2
 
 WORKDIR /usr/local/go/src/github.com/hamster-shared/hamster-gateway/frontend
 
+COPY . .
+
 RUN npm install ;\
     npm run build
 
