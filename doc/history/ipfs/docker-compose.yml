@@ -1,0 +1,29 @@
+version: '3.9'
+services:
+  ipfs:
+    image: 'ipfs/go-ipfs:latest'
+    ports:
+      - "37774:37774"
+      - "5001:5001"
+      - "4001:4001"
+    restart: always
+    volumes:
+      - "ipfs_data:/data/ipfs"
+      - "./swarm.key:/data/ipfs/swarm.key"
+    entrypoint: /sbin/tini --
+    environment:
+      IPFS_PROFILE: badgerds
+    command: >-
+      /bin/sh -c "/usr/local/bin/start_ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '[\"http://127.0.0.1:5001\",\"http://localhost:5001\", \"http://ipfs:5001\"]'
+      && /usr/local/bin/start_ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '[\"PUT\", \"POST\"]'
+      && /usr/local/bin/start_ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/37774
+      && /usr/local/bin/start_ipfs config Addresses.API /ip4/127.0.0.1/tcp/5001
+      && /usr/local/bin/start_ipfs config Datastore.StorageMax 20GB
+      && /usr/local/bin/start_ipfs config --json Swarm.RelayClient.Enabled true
+      && /usr/local/bin/start_ipfs config --json Swarm.RelayService.Enabled true
+      && /usr/local/bin/start_ipfs bootstrap rm --all
+      && /usr/local/bin/start_ipfs bootstrap add /ip4/59.80.40.149/tcp/4001/p2p/12D3KooWSm8rYXfjbMaBkySrt1WhtHEZpqJXyqj36hPJoVkMvQfd
+      && /usr/local/bin/start_ipfs daemon --migrate=true"
+    container_name: ipfs
+volumes:
+  ipfs_data:

@@ -1,18 +1,8 @@
 FROM golang:1.17.3 as builder
 
 # install cgo-related dependencies
-RUN set -eux; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		libvirt-dev \
-		gcc \
-	; \
-	rm -rf /var/lib/apt/lists/*
 
 WORKDIR  /usr/local/go/src/github.com/hamster-shared/hamster-gateway/
-
-ENV GO111MODULE on
-ENV GOPROXY https://goproxy.cn
 
 COPY . .
 
@@ -20,28 +10,18 @@ RUN set -eux; \
     go mod tidy ; \
     go build
 
+FROM node:17 as builder-2
 
-FROM docker:20
+WORKDIR /usr/local/go/src/github.com/hamster-shared/hamster-gateway/frontend
 
-RUN set -eux; \
-    apk update ; \
-    apk add libvirt-dev
-
-WORKDIR /root/
-
-## test evn
-ENV CHAIN_ADDRESS 183.66.65.207:49944
-ENV CPU 1
-ENV MEMORY 1
-
-COPY --from=builder /usr/local/go/src/tntlinking.com/ttchain-compute-provider/ttchain-compute-provider /usr/local/bin/
-
-RUN set -eux ;\
-    ttchain-compute-gateway init
+RUN npm install ;\
+    npm run build
 
 
-CMD sed -i 's/"none"/"done"/' ~/.ttchain-compute-provider/config \
-    && sed -i "s/127.0.0.1:9944/$CHAIN_ADDRESS/" ~/.ttchain-compute-provider/config \
-    && sed -i "s/cpu\"\:1/cpu\"\:$CPU/"  ~/.ttchain-compute-provider/config\
-    && sed -i "s/mem\"\:1/mem\"\:$MEMORY/"  ~/.ttchain-compute-provider/config\
-    && ttchain-compute-provider daemon
+FROM ubuntu:20.04
+
+COPY --from=builder /usr/local/go/src/github.com/hamster-shared/hamster-gateway/hamster-gateway /usr/local/bin/
+
+COPY --from=builder-2  /usr/local/go/src/github.com/hamster-shared/hamster-gateway/frontend/dist /usr/local/bin/frontend/
+
+CMD hamster-gateway daemon
