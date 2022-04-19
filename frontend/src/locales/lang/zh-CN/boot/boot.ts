@@ -7,4 +7,5 @@ export default {
   accessPort: '访问端口',
   type: '虚拟化类型',
   resourceInfo: '资源信息',
+  setStateFail: '修改状态失败',
 };

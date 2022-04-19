@@ -32,6 +32,7 @@
   import { Switch } from 'ant-design-vue';
   import { getBootStateApi, setBootStateApi } from '/@/api/gateway/boot';
   import { getConfigApi } from '/@/api/gateway/initialization';
+  import { message } from 'ant-design-vue';
 
   const { pkg } = __APP_INFO__;
   const { name } = pkg;
@@ -42,7 +43,14 @@
   const onChange = function (checked) {
     loading.value = true;
     setBootStateApi(checked)
-      .then(() => {})
+      .then(() => {
+        console.log("success")
+      })
+      .catch(err => {
+        console.log(err)
+        option.value = !checked
+        message.error(t('boot.boot.setStateFail'));
+      })
       .finally(() => {
         loading.value = false;
       });

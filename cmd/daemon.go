@@ -17,16 +17,13 @@ package cmd
 
 import (
 	"fmt"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/hamster-shared/hamster-gateway/core"
 	context2 "github.com/hamster-shared/hamster-gateway/core/context"
-	chain2 "github.com/hamster-shared/hamster-gateway/core/modules/chain"
 	"github.com/hamster-shared/hamster-gateway/core/modules/config"
 	"github.com/hamster-shared/hamster-gateway/core/modules/time"
 	"github.com/hamster-shared/hamster-gateway/core/modules/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // daemonCmd represents the daemon command
@@ -77,23 +74,14 @@ func NewContext(accountId, chainAddress string) context2.CoreContext {
 		cfg.ChainApi = chainAddress
 	}
 	_ = cm.Save(cfg)
-	substrateApi, err := gsrpc.NewSubstrateAPI(cfg.ChainApi)
-	if err != nil {
-		logrus.Error(err)
-		os.Exit(1)
-	}
-	reportClient, err := chain2.NewChainClient(cm, substrateApi)
-	if err != nil {
-		logrus.Error(err)
-		return context2.CoreContext{}
-	}
+
 	timeService := utils.NewTimerService()
-	stateService := time.NewStateService(reportClient, cm)
+	stateService := time.NewStateService(cm)
 
 	context := context2.CoreContext{
-		Cm:           cm,
-		ReportClient: reportClient,
-		SubstrateApi: substrateApi,
+		Cm: cm,
+		//ReportClient: reportClient,
+		//SubstrateApi: substrateApi,
 		TimerService: timeService,
 		StateService: stateService,
 	}
