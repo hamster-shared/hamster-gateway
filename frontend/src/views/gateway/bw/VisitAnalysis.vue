@@ -8,6 +8,7 @@
   import { onMounted,onUnmounted, ref, Ref } from 'vue';
   import { useECharts } from '/@/hooks/web/useECharts';
   import {getBandwidthApi} from '/@/api/gateway/bw'
+  import { getBootStateApi } from '/@/api/gateway/boot';
 
   defineProps({
     ...basicProps,
@@ -24,7 +25,18 @@
   const timer = ref()
 
 
-  const getData = function () {
+  const ensureData = function () {
+    getBootStateApi().then(state => {
+
+      if(state){
+        getData()
+      }
+
+    })
+
+  }
+
+  const getData = function (){
     getBandwidthApi().then(data => {
 
       if(timeArray.value.length >= xAxisLength){
@@ -115,7 +127,7 @@
 
   onMounted(() => {
 
-    timer.value = setInterval(getData,2000);
+    timer.value = setInterval(ensureData,2000);
 
 
   });

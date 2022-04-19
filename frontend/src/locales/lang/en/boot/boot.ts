@@ -8,4 +8,5 @@ export default {
   accessPort: 'access port',
   type: 'virtualization type',
   resourceInfo: 'Resource information',
+  setStateFail: 'Set state fail',
 };

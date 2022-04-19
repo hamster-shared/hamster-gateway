@@ -50,7 +50,10 @@ func setBootState(gin *MyContext) {
 	}
 
 	if op.Option {
-		gin.CoreContext.StateService.Start()
+		err := gin.CoreContext.StateService.Start()
+		if err != nil {
+			gin.JSON(http.StatusBadRequest, BadRequest(err.Error()))
+		}
 	} else {
 		gin.CoreContext.StateService.Stop()
 	}
@@ -64,7 +67,8 @@ func getBootState(gin *MyContext) {
 
 func getP2pBW(gin *MyContext) {
 	nd := gin.CoreContext.StateService.Node
-	if !nd.IsOnline {
+
+	if nd == nil || !nd.IsOnline {
 		gin.JSON(http.StatusBadRequest, BadRequest("Not Online"))
 		return
 	}

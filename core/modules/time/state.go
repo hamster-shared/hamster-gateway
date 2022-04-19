@@ -2,6 +2,7 @@ package time
 
 import (
 	"fmt"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	chain2 "github.com/hamster-shared/hamster-gateway/core/modules/chain"
 	"github.com/hamster-shared/hamster-gateway/core/modules/config"
 	"github.com/hamster-shared/hamster-gateway/core/modules/p2p"
@@ -20,29 +21,36 @@ type StateService struct {
 	cm           *config.ConfigManager
 }
 
-func NewStateService(reportClient chain2.ReportClient, cm *config.ConfigManager) *StateService {
+func NewStateService(cm *config.ConfigManager) *StateService {
 	return &StateService{
-		reportClient: reportClient,
-		cm:           cm,
+		cm: cm,
 	}
 }
 
-func (s *StateService) Start() {
+func (s *StateService) Start() error {
 
 	if s.Running() {
-		return
+		return nil
 	}
+	cf, err := s.cm.GetConfig()
+
+	substrateApi, err := gsrpc.NewSubstrateAPI(cf.ChainApi)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	reportClient, err := chain2.NewChainClient(s.cm, substrateApi)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	s.reportClient = reportClient
 
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
 	node, err := p2p.RunDaemon(s.ctx)
 	s.Node = node
-	if err != nil {
-		log.Error("run ipfs daemon fail")
-		os.Exit(1)
-	}
-
-	cf, err := s.cm.GetConfig()
 	if err != nil {
 		log.Error("run ipfs daemon fail")
 		os.Exit(1)
@@ -77,6 +85,7 @@ func (s *StateService) Start() {
 		}
 	}(s.ctx)
 
+	return nil
 }
 
 func (s *StateService) Stop() {
