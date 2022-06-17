@@ -63,16 +63,16 @@ We are excited that you are interested in contributing to Hamster. Before submit
 ```bash
 
 # install package dependency
-
+## centos 
+sudo yum  install -y autoconf automake libtool git                                                         
+## ubuntu
+sudo apt install -y autoconf automake libtool git                                                             
 
 # clone the project
 git clone https://github.com/hamster-shared/hamster-gateway.git
 
 # open frontend directory
 cd frontend
-
-# install frontend dependency
-npm install
 
 # build frontend 
 npm run build
