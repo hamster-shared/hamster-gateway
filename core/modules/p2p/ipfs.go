@@ -7,7 +7,6 @@ import (
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -66,13 +65,18 @@ func RunDaemon(ctx context.Context) (*core.IpfsNode, error) {
 			log.Error("fsrepo  init fail : ", err)
 			return nil, err
 		}
-		// init swarm key
-		err = ioutil.WriteFile(filepath.Join(ipfsPath, "swarm.key"), []byte(SwarmKey), fs.ModePerm)
+	}
+	swarmKeyFile := filepath.Join(ipfsPath, "swarm.key")
+
+	_, err = os.Lstat(swarmKeyFile)
+	if err != nil {
+		err = ioutil.WriteFile(swarmKeyFile, []byte(SwarmKey), 0644)
 		if err != nil {
 			log.Error("init swarm.key fail", err)
 			return nil, err
 		}
 	}
+
 	repo, err := fsrepo.Open(ipfsPath)
 	if err != nil {
 		log.Error("fsrepo is not initialization: ", err)
