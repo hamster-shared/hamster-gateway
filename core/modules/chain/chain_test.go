@@ -49,3 +49,17 @@ func TestResource(t *testing.T) {
 	assert.NoError(t, err)
 	fmt.Println(resource)
 }
+
+func TestGetEventRecord(t *testing.T) {
+	cm := config.NewConfigManager()
+	cfg, _ := cm.GetConfig()
+	substrateApi, err := gsrpc.NewSubstrateAPI(cfg.ChainApi)
+	cc, err := NewChainClient(cm, substrateApi)
+	assert.NoError(t, err)
+
+	events, err := cc.GetEvent(4)
+
+	fmt.Println(err)
+
+	fmt.Println(events)
+}

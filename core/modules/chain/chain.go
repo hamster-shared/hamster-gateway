@@ -8,6 +8,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/hamster-shared/hamster-gateway/core/modules/config"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 // ChainClient blockchain chain connection
@@ -109,8 +110,6 @@ func (cc *ChainClient) callAndWatch(c types.Call, meta *types.Metadata, hook fun
 	}
 
 	keypair, err := signature.KeyringPairFromSecret(cf.SeedOrPhrase, 42)
-	address := keypair.Address
-	println(address)
 	if err != nil {
 		return err
 	}
@@ -156,7 +155,6 @@ func (cc *ChainClient) callAndWatch(c types.Call, meta *types.Metadata, hook fun
 
 	for {
 		status := <-sub.Chan()
-		fmt.Printf("Transaction status: %#v\n", status)
 
 		if status.IsInBlock {
 			fmt.Printf("Completed at block hash: %#x\n", status.AsInBlock)
@@ -232,8 +230,11 @@ func (cc *ChainClient) GetEvent(blockNumber uint64) (*MyEventRecords, error) {
 	}
 	// Decode the event records
 	events := MyEventRecords{}
-	err = types.EventRecordsRaw(*raw).DecodeEventRecords(meta, &events)
 
+	//eventsRecordRow := types.EventRecordsRaw(*raw)
+	//err = DecodeEventRecordsWithIgnoreError(eventsRecordRow,meta,&events)
+
+	err = types.EventRecordsRaw(*raw).DecodeEventRecords(meta, &events)
 	return &events, err
 }
 
@@ -251,33 +252,35 @@ func (cc *ChainClient) Register(localhostAddress string) error {
 		return err
 	}
 
-	hook := func(header *types.Header) error {
-		events, err := cc.GetEvent(uint64(header.Number))
-		if err != nil {
-			return err
-		}
-		if len(events.Gateway_RegisterGatewayNodeSuccess) > 0 {
-			for _, e := range events.Gateway_RegisterGatewayNodeSuccess {
-				for i := range e.PeerId {
-					byte, _ := e.PeerId[i].MarshalJSON()
-					fmt.Println(byte)
-				}
-				//if e.PeerId == cc.getPeerId() {
-				//	return nil
-				//}
-				fmt.Println(e)
-				return nil
-			}
-		}
+	//hook := func(header *types.Header) error {
+	//	events, err := cc.GetEvent(uint64(header.Number))
+	//	if err != nil {
+	//		return err
+	//	}
+	//	if len(events.Gateway_RegisterGatewayNodeSuccess) > 0 {
+	//		for _, e := range events.Gateway_RegisterGatewayNodeSuccess {
+	//			for i := range e.PeerId {
+	//				byte, _ := e.PeerId[i].MarshalJSON()
+	//				fmt.Println(byte)
+	//			}
+	//			cf,_ :=  cc.cm.GetConfig()
+	//			if utils.TypeU8ToStr(e.PeerId) == cf.PeerId {
+	//				return nil
+	//			}
+	//			fmt.Println(e)
+	//			return nil
+	//		}
+	//	}
+	//
+	//	return errors.New("cannot get Order Index")
+	//}
 
-		return errors.New("cannot get Order Index")
-	}
-
-	return cc.callAndWatch(c, meta, hook)
+	return cc.callAndWatch(c, meta, nil)
 }
 
 func (cc *ChainClient) Heartbeat(localhostAddress string) error {
 
+	fmt.Println("当前时间：", time.Now(), ",发送心跳")
 	meta, err := cc.api.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return err
@@ -309,8 +312,6 @@ func (cc *ChainClient) GetResource(resourceIndex uint64) (*ComputingResource, er
 		fmt.Println(err)
 		return nil, err
 	}
-	fmt.Println(key.Hex())
-
 	rows, err := cc.api.RPC.State.GetStorageRawLatest(key)
 	fmt.Println("rows", len(*rows))
 	fmt.Println("err:", err)
@@ -365,4 +366,48 @@ func (cc *ChainClient) CheckExtrinsicSuccess(header *types.Header, call string) 
 	}
 
 	return nil
+}
+
+func (cc *ChainClient) GetMarketUser() (MarketUser, error) {
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		panic(err)
+	}
+
+	param, err := types.EncodeToBytes(Gateway_MarketUserStatus)
+
+	cf, err := cc.cm.GetConfig()
+	if err != nil {
+		return MarketUser{}, err
+	}
+	keypair, err := signature.KeyringPairFromSecret(cf.SeedOrPhrase, 42)
+	if err != nil {
+		return MarketUser{}, err
+	}
+
+	key, err := types.CreateStorageKey(meta, "Market", "StakerInfo", param, keypair.PublicKey)
+	var data MarketUser
+	ok, err := cc.api.RPC.State.GetStorageLatest(key, &data)
+	if !ok {
+		return data, errors.New("cannot find stacking from chain")
+	}
+
+	return data, err
+
+}
+
+func (cc *ChainClient) CrateMarketAccount() error {
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	c, err := types.NewCall(meta, "Market.crate_market_account", Gateway_MarketUserStatus)
+
+	if err != nil {
+		return err
+	}
+
+	return cc.callAndWatch(c, meta, nil)
 }
