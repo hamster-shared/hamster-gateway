@@ -1,13 +1,9 @@
 package chain
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/ethereum/go-ethereum/log"
-	"reflect"
 )
 
 type EventProviderRegisterResourceSuccess struct {
@@ -95,7 +91,6 @@ type EventRegisterGatewayNodeSuccess struct {
 	Phase       types.Phase
 	AccountId   types.AccountID
 	BlockNumber types.BlockNumber
-	PeerId      []types.U8
 	Topics      []types.Hash
 }
 
@@ -110,117 +105,69 @@ type MyEventRecords struct {
 	ResourceOrder_FreeResourceProcessed           []EventResourceOrderFreeResourceProcessed
 	ResourceOrder_FreeResourceApplied             []EventResourceOrderFreeResourceApplied
 	ElectionProviderMultiPhase_SignedPhaseStarted []EventElectionProviderMultiPhase_SignedPhaseStarted
-	Market_Money                                  []EventMarketMoney
+	Market_StakingSuccess                         []EventMarket_StakingSuccess
 }
 
-func DecodeEventRecordsWithIgnoreError(e types.EventRecordsRaw, m *types.Metadata, t interface{}) error {
-	fmt.Println(fmt.Sprintf("will decode event records from raw hex: %#x", e))
+type EventMarket_StakingSuccess struct {
+	Phase            types.Phase
+	AccountId        types.AccountID
+	MarketUserStatus types.U8
+	BalanceOf        types.U128
+	Topics           []types.Hash
+}
 
-	// ensure t is a pointer
-	ttyp := reflect.TypeOf(t)
-	if ttyp.Kind() != reflect.Ptr {
-		return errors.New("target must be a pointer, but is " + fmt.Sprint(ttyp))
-	}
-	// ensure t is not a nil pointer
-	tval := reflect.ValueOf(t)
-	if tval.IsNil() {
-		return errors.New("target is a nil pointer")
-	}
-	val := tval.Elem()
-	typ := val.Type()
-	// ensure val can be set
-	if !val.CanSet() {
-		return fmt.Errorf("unsettable value %v", typ)
-	}
-	// ensure val points to a struct
-	if val.Kind() != reflect.Struct {
-		return fmt.Errorf("target must point to a struct, but is " + fmt.Sprint(typ))
-	}
+type EventMarket_YES struct {
+	Phase  types.Phase
+	Yes    types.U8
+	Topics []types.Hash
+}
 
-	decoder := scale.NewDecoder(bytes.NewReader(e))
+type EventMarket_Money struct {
+	Phase     types.Phase
+	BalanceOf types.U128
+	Topics    []types.Hash
+}
 
-	// determine number of events
-	n, err := decoder.DecodeUintCompact()
+type MarketUserStatus struct {
+	IsProvider bool
+	IsGateway  bool
+	IsClient   bool
+}
+
+func (m *MarketUserStatus) Decode(decoder scale.Decoder) error {
+	b, err := decoder.ReadOneByte()
+	fmt.Println(b)
+
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(fmt.Sprintf("found %v events", n))
+	if b == 0 {
+		m.IsProvider = true
+	} else if b == 1 {
+		m.IsGateway = true
+	} else if b == 2 {
+		m.IsClient = true
+	}
 
-	// iterate over events
-	for i := uint64(0); i < n.Uint64(); i++ {
-		fmt.Println(fmt.Sprintf("decoding event #%v", i))
+	if err != nil {
+		return err
+	}
 
-		// decode Phase
-		phase := types.Phase{}
-		err := decoder.Decode(&phase)
-		if err != nil {
-			return fmt.Errorf("unable to decode Phase for event #%v: %v", i, err)
-		}
+	return nil
+}
 
-		// decode EventID
-		id := types.EventID{}
-		err = decoder.Decode(&id)
-		if err != nil {
-			return fmt.Errorf("unable to decode EventID for event #%v: %v", i, err)
-		}
-
-		fmt.Println(fmt.Sprintf("event #%v has EventID %v", i, id))
-
-		// ask metadata for method & event name for event
-		moduleName, eventName, err := m.FindEventNamesForEventID(id)
-		// moduleName, eventName, err := "System", "ExtrinsicSuccess", nil
-		if err != nil {
-			//return fmt.Errorf("unable to find event with EventID %v in metadata for event #%v: %s", id, i, err)
-			log.Warn("unable to find event with EventID %v in metadata for event #%v: %s", id, i, err)
-			continue
-		}
-
-		fmt.Println(fmt.Sprintf("event #%v is in module %v with event name %v", i, moduleName, eventName))
-
-		// check whether name for eventID exists in t
-		field := val.FieldByName(fmt.Sprintf("%v_%v", moduleName, eventName))
-		if !field.IsValid() {
-			fmt.Println(fmt.Sprintf("unable to find field %v_%v for event #%v with EventID %v ", moduleName, eventName, i, id))
-			continue
-		}
-
-		// create a pointer to with the correct type that will hold the decoded event
-		holder := reflect.New(field.Type().Elem())
-
-		// ensure first field is for Phase, last field is for Topics
-		numFields := holder.Elem().NumField()
-		if numFields < 2 {
-			return fmt.Errorf("expected event #%v with EventID %v, field %v_%v to have at least 2 fields "+
-				"(for Phase and Topics), but has %v fields", i, id, moduleName, eventName, numFields)
-		}
-		phaseField := holder.Elem().FieldByIndex([]int{0})
-		if phaseField.Type() != reflect.TypeOf(phase) {
-			return fmt.Errorf("expected the first field of event #%v with EventID %v, field %v_%v to be of type "+
-				"types.Phase, but got %v", i, id, moduleName, eventName, phaseField.Type())
-		}
-		topicsField := holder.Elem().FieldByIndex([]int{numFields - 1})
-		if topicsField.Type() != reflect.TypeOf([]types.Hash{}) {
-			return fmt.Errorf("expected the last field of event #%v with EventID %v, field %v_%v to be of type "+
-				"[]types.Hash for Topics, but got %v", i, id, moduleName, eventName, topicsField.Type())
-		}
-
-		// set the phase we decoded earlier
-		phaseField.Set(reflect.ValueOf(phase))
-
-		// set the remaining fields
-		for j := 1; j < numFields; j++ {
-			err = decoder.Decode(holder.Elem().FieldByIndex([]int{j}).Addr().Interface())
-			if err != nil {
-				return fmt.Errorf("unable to decode field %v event #%v with EventID %v, field %v_%v: %v", j, i, id, moduleName,
-					eventName, err)
-			}
-		}
-
-		// add the decoded event to the slice
-		field.Set(reflect.Append(field, holder.Elem()))
-
-		fmt.Println(fmt.Sprintf("decoded event #%v", i))
+func (m *MarketUserStatus) Encode(encoder scale.Encoder) error {
+	var err1 error
+	if m.IsProvider {
+		err1 = encoder.PushByte(0)
+	} else if m.IsGateway {
+		err1 = encoder.PushByte(1)
+	} else if m.IsClient {
+		err1 = encoder.PushByte(2)
+	}
+	if err1 != nil {
+		return err1
 	}
 	return nil
 }

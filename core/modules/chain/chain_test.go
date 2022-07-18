@@ -52,14 +52,27 @@ func TestResource(t *testing.T) {
 
 func TestGetEventRecord(t *testing.T) {
 	cm := config.NewConfigManager()
-	cfg, _ := cm.GetConfig()
-	substrateApi, err := gsrpc.NewSubstrateAPI(cfg.ChainApi)
+	//cfg, _ := cm.GetConfig()
+	substrateApi, err := gsrpc.NewSubstrateAPI("ws://192.168.1.105:9944")
 	cc, err := NewChainClient(cm, substrateApi)
 	assert.NoError(t, err)
 
-	events, err := cc.GetEvent(4)
+	events, err := cc.GetEvent(202)
 
 	fmt.Println(err)
 
-	fmt.Println(events)
+	fmt.Println(len(events.Gateway_RegisterGatewayNodeSuccess))
+
+	assert.NoError(t, err)
+}
+
+func TestGetState(t *testing.T) {
+	cm := config.NewConfigManager()
+	//cfg, _ := cm.GetConfig()
+	substrateApi, err := gsrpc.NewSubstrateAPI("ws://127.0.0.1:9944")
+	cc, err := NewChainClient(cm, substrateApi)
+	assert.NoError(t, err)
+	marketUser, err := cc.GetMarketUser()
+	fmt.Println(marketUser)
+	assert.NoError(t, err)
 }

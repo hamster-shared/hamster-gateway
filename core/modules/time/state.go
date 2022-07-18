@@ -62,21 +62,18 @@ func (s *StateService) Start() error {
 	localAddress := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", cf.PublicIp, cf.PublicPort, node.Identity.String())
 
 	// 2: blockchain registration
-	for {
-		_, err = s.reportClient.GetMarketUser()
+	marketUser, err := s.reportClient.GetMarketUser()
+	fmt.Println(marketUser)
+	if err != nil {
+		err := s.reportClient.CrateMarketAccount()
 		if err != nil {
-			err := s.reportClient.CrateMarketAccount()
-			if err != nil {
-				return err
-			}
+			return err
 		}
-		err := s.reportClient.Register(localAddress)
-		if err != nil {
-			log.Errorf("Blockchain registration failed, the reason for the failure： %s", err.Error())
-			time.Sleep(time.Second * 30)
-		} else {
-			break
-		}
+	}
+	err = s.reportClient.Register(localAddress)
+
+	if err != nil {
+		return err
 	}
 
 	ticker := time.NewTicker(10 * time.Minute)
@@ -102,8 +99,7 @@ func (s *StateService) Stop() {
 	}
 
 	s.cancel()
-_:
-	s.Node.Close()
+	_ = s.Node.Close()
 	s.cancel = nil
 	s.Node = nil
 }
