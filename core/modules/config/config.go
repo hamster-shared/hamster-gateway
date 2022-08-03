@@ -28,6 +28,7 @@ type Config struct {
 	SeedOrPhrase string `json:"seedOrPhrase"` // blockchain account seed or mnemonic
 	PublicIp     string `json:"publicIp"`
 	PublicPort   int    `json:"publicPort"`
+	PeerId       string `json:"peer_id"`
 }
 
 type ConfigFlag string

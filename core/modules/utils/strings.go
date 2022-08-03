@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"math/rand"
 	"strings"
 	"time"
@@ -48,4 +49,13 @@ func GetRandomString(length int) string {
 		output.WriteString(string(randomChar))
 	}
 	return output.String()
+}
+
+func TypeU8ToStr(data []types.U8) string {
+	bs := make([]byte, len(data))
+
+	for i, v := range data {
+		bs[i] = byte(v)
+	}
+	return string(bs)
 }

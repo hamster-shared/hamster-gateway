@@ -8,6 +8,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/hamster-shared/hamster-gateway/core/modules/config"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 // ChainClient blockchain chain connection
@@ -23,78 +24,7 @@ func NewChainClient(cm *config.ConfigManager, api *gsrpc.SubstrateAPI) (*ChainCl
 	}, nil
 }
 
-//func (cc *ChainClient) call(c types.Call, meta *types.Metadata) error {
-//
-//	cf, err := cc.cm.GetConfig()
-//
-//	// Create the extrinsic
-//	ext := types.NewExtrinsic(c)
-//	genesisHash, err := cc.api.RPC.Chain.GetBlockHash(0)
-//	if err != nil {
-//		return err
-//	}
-//
-//	rv, err := cc.api.RPC.State.GetRuntimeVersionLatest()
-//	if err != nil {
-//		return err
-//	}
-//
-//	keypair, err := signature.KeyringPairFromSecret(cf.SeedOrPhrase, 42)
-//	if err != nil {
-//		return err
-//	}
-//
-//	// Get the nonce for Account
-//	key, err := types.CreateStorageKey(meta, "System", "Account", keypair.PublicKey)
-//	if err != nil {
-//		return err
-//	}
-//
-//	var accountInfo types.AccountInfo
-//	ok, err := cc.api.RPC.State.GetStorageLatest(key, &accountInfo)
-//	if err != nil {
-//		return err
-//	}
-//	if !ok {
-//		return errors.New("GetStorageLatest fail")
-//	}
-//
-//	nonce := uint32(accountInfo.Nonce)
-//	o := types.SignatureOptions{
-//		BlockHash:          genesisHash,
-//		Era:                types.ExtrinsicEra{IsMortalEra: false},
-//		GenesisHash:        genesisHash,
-//		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
-//		SpecVersion:        rv.SpecVersion,
-//		Tip:                types.NewUCompactFromUInt(0),
-//		TransactionVersion: rv.TransactionVersion,
-//	}
-//
-//	// Sign the transaction using User's default account
-//	err = ext.Sign(keypair, o)
-//	if err != nil {
-//		return err
-//	}
-//
-//	res, err := cc.api.RPC.Author.SubmitExtrinsic(ext)
-//	if err != nil {
-//		logrus.Errorf("extrinsic submit failed: %v", err)
-//		return err
-//	}
-//
-//	hex, err := types.Hex(res)
-//	if err != nil {
-//		return err
-//	}
-//	if hex == "" {
-//		return errors.New("hex is empty")
-//	}
-//	return nil
-//}
-
 func (cc *ChainClient) callAndWatch(c types.Call, meta *types.Metadata, hook func(header *types.Header) error) error {
-
-	cf, err := cc.cm.GetConfig()
 
 	// Create the extrinsic
 	ext := types.NewExtrinsic(c)
@@ -108,9 +38,8 @@ func (cc *ChainClient) callAndWatch(c types.Call, meta *types.Metadata, hook fun
 		return err
 	}
 
+	cf, err := cc.cm.GetConfig()
 	keypair, err := signature.KeyringPairFromSecret(cf.SeedOrPhrase, 42)
-	address := keypair.Address
-	println(address)
 	if err != nil {
 		return err
 	}
@@ -156,7 +85,6 @@ func (cc *ChainClient) callAndWatch(c types.Call, meta *types.Metadata, hook fun
 
 	for {
 		status := <-sub.Chan()
-		fmt.Printf("Transaction status: %#v\n", status)
 
 		if status.IsInBlock {
 			fmt.Printf("Completed at block hash: %#x\n", status.AsInBlock)
@@ -232,7 +160,13 @@ func (cc *ChainClient) GetEvent(blockNumber uint64) (*MyEventRecords, error) {
 	}
 	// Decode the event records
 	events := MyEventRecords{}
-	err = types.EventRecordsRaw(*raw).DecodeEventRecords(meta, &events)
+
+	eventsRecordRow := types.EventRecordsRaw(*raw)
+
+	//err = DecodeEventRecordsWithInoreError(eventsRecordRow,meta,&events)
+	err = eventsRecordRow.DecodeEventRecords(meta, &events)
+
+	fmt.Println(err)
 
 	return &events, err
 }
@@ -248,36 +182,34 @@ func (cc *ChainClient) Register(localhostAddress string) error {
 	c, err := types.NewCall(meta, "Gateway.register_gateway_node", localhostAddress)
 
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
-	hook := func(header *types.Header) error {
-		events, err := cc.GetEvent(uint64(header.Number))
-		if err != nil {
-			return err
-		}
-		if len(events.Gateway_RegisterGatewayNodeSuccess) > 0 {
-			for _, e := range events.Gateway_RegisterGatewayNodeSuccess {
-				for i := range e.PeerId {
-					byte, _ := e.PeerId[i].MarshalJSON()
-					fmt.Println(byte)
-				}
-				//if e.PeerId == cc.getPeerId() {
-				//	return nil
-				//}
-				fmt.Println(e)
-				return nil
-			}
-		}
-
-		return errors.New("cannot get Order Index")
-	}
-
-	return cc.callAndWatch(c, meta, hook)
+	//hook := func(header *types.Header) error {
+	//	events, err := cc.GetEvent(uint64(header.Number))
+	//	if err != nil {
+	//		return err
+	//	}
+	//	if len(events.Gateway_RegisterGatewayNodeSuccess) > 0 {
+	//		for _, e := range events.Gateway_RegisterGatewayNodeSuccess {
+	//			cf, _ := cc.cm.GetConfig()
+	//			keypair, _ := signature.KeyringPairFromSecret(cf.SeedOrPhrase, 42)
+	//			if keypair.Address == utils.AccountIdToAddress(e.AccountId) {
+	//				return nil
+	//			}
+	//		}
+	//	}
+	//
+	//	return errors.New("cannot get Order Index")
+	//}
+	//
+	return cc.callAndWatch(c, meta, nil)
 }
 
 func (cc *ChainClient) Heartbeat(localhostAddress string) error {
 
+	fmt.Println("当前时间：", time.Now(), ",发送心跳")
 	meta, err := cc.api.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return err
@@ -309,8 +241,6 @@ func (cc *ChainClient) GetResource(resourceIndex uint64) (*ComputingResource, er
 		fmt.Println(err)
 		return nil, err
 	}
-	fmt.Println(key.Hex())
-
 	rows, err := cc.api.RPC.State.GetStorageRawLatest(key)
 	fmt.Println("rows", len(*rows))
 	fmt.Println("err:", err)
@@ -365,4 +295,48 @@ func (cc *ChainClient) CheckExtrinsicSuccess(header *types.Header, call string) 
 	}
 
 	return nil
+}
+
+func (cc *ChainClient) GetMarketUser() (MarketUser, error) {
+
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		panic(err)
+	}
+
+	param, err := types.EncodeToBytes(Gateway_MarketUserStatus)
+
+	cf, err := cc.cm.GetConfig()
+	if err != nil {
+		return MarketUser{}, err
+	}
+	keypair, err := signature.KeyringPairFromSecret(cf.SeedOrPhrase, 42)
+	if err != nil {
+		return MarketUser{}, err
+	}
+
+	key, err := types.CreateStorageKey(meta, "Market", "StakerInfo", param, keypair.PublicKey)
+	var data MarketUser
+	ok, err := cc.api.RPC.State.GetStorageLatest(key, &data)
+	if !ok {
+		return data, errors.New("cannot find stacking from chain")
+	}
+
+	return data, err
+
+}
+
+func (cc *ChainClient) CrateMarketAccount() error {
+	meta, err := cc.api.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	c, err := types.NewCall(meta, "Market.crate_market_account", Gateway_MarketUserStatus)
+
+	if err != nil {
+		return err
+	}
+
+	return cc.callAndWatch(c, meta, nil)
 }

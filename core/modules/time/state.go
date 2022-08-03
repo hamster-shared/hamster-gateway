@@ -9,7 +9,6 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"os"
 	"time"
 )
 
@@ -50,37 +49,42 @@ func (s *StateService) Start() error {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
 	node, err := p2p.RunDaemon(s.ctx)
-	s.Node = node
 	if err != nil {
 		log.Error("run ipfs daemon fail")
-		os.Exit(1)
+		return err
 	}
+
+	s.Node = node
+
+	cf.PeerId = node.Identity.String()
+	_ = s.cm.Save(cf)
 
 	localAddress := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", cf.PublicIp, cf.PublicPort, node.Identity.String())
 
 	// 2: blockchain registration
-	for {
-		err := s.reportClient.Register(localAddress)
+	marketUser, err := s.reportClient.GetMarketUser()
+	fmt.Println(marketUser)
+	if err != nil {
+		err := s.reportClient.CrateMarketAccount()
 		if err != nil {
-			log.Errorf("Blockchain registration failed, the reason for the failure： %s", err.Error())
-			time.Sleep(time.Second * 30)
-		} else {
-			break
+			return err
 		}
 	}
+	err = s.reportClient.Register(localAddress)
 
-	// 3: healthcheck
-	myTimer := time.NewTimer(time.Minute * 10) // start timer
+	if err != nil {
+		return err
+	}
 
+	ticker := time.NewTicker(10 * time.Minute)
 	go func(ctx context.Context) {
 		for {
 			select {
-			case <-myTimer.C:
-				// health check
-				s.reportClient.Heartbeat(localAddress)
-				myTimer.Reset(time.Minute * 10) // reset timer
 			case <-ctx.Done():
 				return
+			case t := <-ticker.C:
+				fmt.Println("Tick at", t)
+				_ = s.reportClient.Heartbeat(localAddress)
 			}
 		}
 	}(s.ctx)
@@ -95,7 +99,9 @@ func (s *StateService) Stop() {
 	}
 
 	s.cancel()
+	_ = s.Node.Close()
 	s.cancel = nil
+	s.Node = nil
 }
 
 func (s *StateService) Running() bool {

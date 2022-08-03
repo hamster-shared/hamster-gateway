@@ -212,3 +212,9 @@ func (m *OrderStatus) Encode(encoder scale.Encoder) error {
 	}
 	return nil
 }
+
+type MarketUser struct {
+	StakedAmount types.U128
+}
+
+const Gateway_MarketUserStatus = types.U8(1)

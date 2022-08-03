@@ -6,4 +6,8 @@ type ReportClient interface {
 	Register(string) error
 	// Heartbeat protocol heartbeat report
 	Heartbeat(localhostAddress string) error
+
+	GetMarketUser() (MarketUser, error)
+
+	CrateMarketAccount() error
 }
